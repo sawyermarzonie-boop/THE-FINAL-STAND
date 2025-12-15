@@ -12,20 +12,23 @@
     overflow: hidden;
     background: #000;
   }
+
+  /* Background Video */
   #video-bg {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    width: 100vw;
+    height: 100vh;
     object-fit: cover;
     z-index: -1;
   }
 
-  /* Right side container for all UI */
+  /* UI Container */
   #ui-container {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 280px;
+    width: 300px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -33,7 +36,7 @@
   }
 
   .ui-panel {
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.7);
     color: #fff;
     padding: 15px;
     border-radius: 10px;
@@ -43,7 +46,16 @@
   .ui-panel h3 { margin-top: 0; }
   .ui-panel a { color: #0af; text-decoration: none; }
   .ui-panel a:hover { text-decoration: underline; }
-  button { margin-top: 8px; padding: 8px 14px; cursor: pointer; border: none; border-radius: 5px; background: #0af; color: #000; font-weight: bold; }
+  button {
+    margin-top: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background: #0af;
+    color: #000;
+    font-weight: bold;
+  }
 
   table { border-collapse: collapse; margin-top: 10px; }
   td {
@@ -63,7 +75,7 @@
 
   #mine-count { font-weight: bold; display: block; margin-top: 8px; }
 
-  /* Confetti overlay */
+  /* Confetti Canvas */
   #confetti {
     position: fixed;
     top:0; left:0;
@@ -73,7 +85,7 @@
     display:none;
   }
 
-  /* BOOM overlay */
+  /* BOOM Overlay */
   #boom {
     position: fixed;
     top:0; left:0;
@@ -93,12 +105,11 @@
 
 <!-- Background Video -->
 <video id="video-bg" autoplay loop muted playsinline>
-  <source src="https://cdn.pixabay.com/vimeo/358426593/Miku_Concert.mp4" type="video/mp4">
+  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
 </video>
 
 <!-- UI Container -->
 <div id="ui-container">
-  <!-- Settings Panel -->
   <div class="ui-panel">
     <h3>Settings</h3>
     <label><input type="checkbox" id="music-toggle" checked> Music On</label><br>
@@ -115,20 +126,18 @@
     <span id="mine-count"></span>
   </div>
 
-  <!-- Links Panel -->
   <div class="ui-panel">
     <h3>Fun Links</h3>
     <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
     <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
   </div>
 
-  <!-- Minesweeper Panel -->
   <div class="ui-panel" id="minesweeper"></div>
 </div>
 
-<!-- Confetti canvas -->
+<!-- Confetti Canvas -->
 <canvas id="confetti"></canvas>
-<!-- BOOM overlay -->
+<!-- BOOM Overlay -->
 <div id="boom">💥 BOOM 💥</div>
 
 <!-- Background Music -->
@@ -137,10 +146,14 @@
 </audio>
 
 <script>
-// Minesweeper variables
+// ========================
+// Minesweeper Variables
+// ========================
 let rows, cols, mines, board, revealed, flags;
 
-// Confetti animation
+// ========================
+// Confetti Setup
+// ========================
 const confettiCanvas = document.getElementById("confetti");
 const confettiCtx = confettiCanvas.getContext("2d");
 confettiCanvas.width = window.innerWidth;
@@ -152,7 +165,7 @@ function createConfetti() {
   for (let i=0;i<150;i++){
     confettiParticles.push({
       x: Math.random()*confettiCanvas.width,
-      y: Math.random()*confettiCanvas.height- confettiCanvas.height,
+      y: Math.random()*confettiCanvas.height - confettiCanvas.height,
       r: Math.random()*6+4,
       d: Math.random()*150+50,
       color: `hsl(${Math.random()*360}, 100%, 50%)`,
@@ -192,14 +205,18 @@ function startConfetti() {
   }, 4000);
 }
 
-// BOOM animation
+// ========================
+// BOOM Animation
+// ========================
 function showBoom() {
   const boom = document.getElementById("boom");
   boom.style.display = "block";
   setTimeout(()=>{ boom.style.display="none"; }, 1500);
 }
 
-// Difficulty
+// ========================
+// Game Logic
+// ========================
 function setDifficulty(d) {
   if (d==="easy") { rows=5; cols=5; mines=5; }
   else if (d==="medium") { rows=8; cols=8; mines=12; }
@@ -213,18 +230,17 @@ function startGame() {
   initMinesweeper();
 }
 
-// Update Mine Counter
 function updateMineCount() {
   document.getElementById("mine-count").innerText = `Mines: ${mines - flags}`;
 }
 
-// Initialize Minesweeper
 function initMinesweeper() {
   const container = document.getElementById("minesweeper");
   container.innerHTML = "";
   board = Array(rows).fill().map(()=>Array(cols).fill(0));
   revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
 
+  // Place mines
   let placed = 0;
   while (placed < mines) {
     let r = Math.floor(Math.random()*rows);
@@ -232,6 +248,7 @@ function initMinesweeper() {
     if (board[r][c] !== "M") { board[r][c] = "M"; placed++; }
   }
 
+  // Count neighbors
   for (let r=0;r<rows;r++){
     for (let c=0;c<cols;c++){
       if (board[r][c]!=="M") {
@@ -247,6 +264,7 @@ function initMinesweeper() {
     }
   }
 
+  // Render table
   const table=document.createElement("table");
   for (let r=0;r<rows;r++){
     const tr=document.createElement("tr");
@@ -262,7 +280,6 @@ function initMinesweeper() {
   container.appendChild(table);
 }
 
-// Flag Cell
 function flagCell(td) {
   let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
   if (revealed[r][c]) return;
@@ -272,7 +289,6 @@ function flagCell(td) {
   checkWin();
 }
 
-// Reveal Cell
 function revealCell(td) {
   let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
   if (td.classList.contains("flag") || revealed[r][c]) return;
@@ -300,7 +316,6 @@ function revealCell(td) {
   }
 }
 
-// Check Win
 function checkWin() {
   let safeCells = 0;
   for (let r=0;r<rows;r++){
@@ -314,7 +329,9 @@ function checkWin() {
   }
 }
 
-// Initial game
+// ========================
+// Initial Setup
+// ========================
 startGame();
 
 // Music toggle
