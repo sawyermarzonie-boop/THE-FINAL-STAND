@@ -1,2 +1,208 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Miku Games</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: url("miku.jpg") center/cover no-repeat fixed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#container {
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 15px;
+  width: 95%;
+  max-width: 1000px;
+  display: flex;
+  gap: 20px;
+}
+
+#left {
+  width: 260px;
+}
+
+#right {
+  flex-grow: 1;
+  text-align: center;
+}
+
+.panel {
+  background: rgba(0,0,0,0.6);
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+a {
+  color: #7ddfff;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+button, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Minesweeper */
+#board {
+  display: grid;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.cell {
+  background: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cell.revealed { background: #ddd; }
+.cell.flag { background: orange; }
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+<div id="left">
+  <div class="panel">
+    <h3>🔗 School-Safe Games</h3>
+    <a href="https://www.coolmathgames.com" target="_blank">Cool Math Games</a><br>
+    <a href="https://www.mathplayground.com" target="_blank">Math Playground</a><br>
+    <a href="https://www.typingclub.com" target="_blank">TypingClub</a><br>
+    <a href="https://www.prodigygame.com" target="_blank">Prodigy Math</a>
+  </div>
+
+  <div class="panel">
+    <h3>⚙️ Minesweeper</h3>
+    <select id="difficulty">
+      <option value="easy">Easy 6×6</option>
+      <option value="medium">Medium 8×8</option>
+      <option value="hard">Hard 10×10</option>
+    </select>
+    <button onclick="startGame()">Restart</button>
+    <div id="mineCount"></div>
+    <a href="index.html">⬅ Back to Menu</a>
+  </div>
+</div>
+
+<div id="right">
+  <h2>Miku Minesweeper 💣</h2>
+  <div id="board"></div>
+</div>
+
+</div>
+
+<audio id="music" loop autoplay>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+let rows, cols, mines;
+let board = [];
+let revealed = [];
+const boardDiv = document.getElementById("board");
+
+function startGame() {
+  const diff = document.getElementById("difficulty").value;
+  if (diff === "easy") { rows=6; cols=6; mines=6; }
+  else if (diff === "medium") { rows=8; cols=8; mines=10; }
+  else { rows=10; cols=10; mines=15; }
+
+  document.getElementById("mineCount").innerText = `Mines: ${mines}`;
+  buildBoard();
+}
+
+function buildBoard() {
+  board = Array(rows).fill().map(()=>Array(cols).fill(0));
+  revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
+  boardDiv.innerHTML = "";
+  boardDiv.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  let placed = 0;
+  while (placed < mines) {
+    let r = Math.floor(Math.random()*rows);
+    let c = Math.floor(Math.random()*cols);
+    if (board[r][c] !== "M") {
+      board[r][c] = "M";
+      placed++;
+    }
+  }
+
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (board[r][c] !== "M") {
+        let count = 0;
+        for (let dr=-1;dr<=1;dr++){
+          for (let dc=-1;dc<=1;dc++){
+            let nr=r+dr,nc=c+dc;
+            if (nr>=0&&nr<rows&&nc>=0&&nc<cols&&board[nr][nc]==="M") count++;
+          }
+        }
+        board[r][c] = count;
+      }
+    }
+  }
+
+  const size = Math.min(420/cols, 420/rows);
+
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = size+"px";
+      cell.style.height = size+"px";
+      cell.onclick = () => reveal(cell,r,c);
+      cell.oncontextmenu = e => { e.preventDefault(); flag(cell,r,c); };
+      boardDiv.appendChild(cell);
+    }
+  }
+}
+
+function flag(cell,r,c){
+  if (revealed[r][c]) return;
+  cell.classList.toggle("flag");
+}
+
+function reveal(cell,r,c){
+  if (revealed[r][c] || cell.classList.contains("flag")) return;
+  revealed[r][c] = true;
+  cell.classList.add("revealed");
+
+  if (board[r][c] === "M") {
+    alert("💥 Boom!");
+    startGame();
+    return;
+  }
+  if (board[r][c] > 0) cell.innerText = board[r][c];
+}
+
+startGame();
+</script>
+
+</body>
+</html>
 
