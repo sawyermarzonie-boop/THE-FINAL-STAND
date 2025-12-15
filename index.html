@@ -44,3 +44,246 @@ function submitApplication() {
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Miku Fun Zone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+/* Background */
+body {
+  background: url("miku.jpg") no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Main box */
+#container {
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  padding: 20px;
+  border-radius: 15px;
+  display: flex;
+  gap: 20px;
+}
+
+/* Left panel */
+#left-panel {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Right panel */
+#right-panel {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Panels */
+.panel {
+  background: rgba(0,0,0,0.6);
+  padding: 15px;
+  border-radius: 10px;
+}
+
+h2, h3 {
+  margin-top: 0;
+  text-align: center;
+}
+
+/* Buttons */
+button, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Links */
+a {
+  color: #7ddfff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Minesweeper */
+#board {
+  display: grid;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.cell {
+  background: #aaa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cell.revealed { background: #ddd; }
+.cell.flag { background: orange; }
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+  <!-- LEFT SIDE -->
+  <div id="left-panel">
+
+    <div class="panel">
+      <h3>🎵 Music</h3>
+      <button onclick="toggleMusic()">Toggle Music</button>
+    </div>
+
+    <div class="panel">
+      <h3>🎮 School-Safe Games</h3>
+      <a href="https://www.coolmathgames.com" target="_blank">Cool Math Games</a><br>
+      <a href="https://www.typingclub.com" target="_blank">TypingClub</a><br>
+      <a href="https://www.prodigygame.com" target="_blank">Prodigy Math</a><br>
+      <a href="https://www.mathplayground.com" target="_blank">Math Playground</a>
+    </div>
+
+    <div class="panel">
+      <h3>⚙️ Settings</h3>
+      <select id="difficulty">
+        <option value="easy">Easy (6×6)</option>
+        <option value="medium">Medium (8×8)</option>
+        <option value="hard">Hard (10×10)</option>
+      </select>
+      <button onclick="startGame()">Restart</button>
+      <div id="mineCount"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div id="right-panel">
+    <h2>Miku Minesweeper 💙</h2>
+    <div id="board"></div>
+  </div>
+
+</div>
+
+<!-- MUSIC -->
+<audio id="music" loop>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+let rows, cols, mines;
+let board = [];
+let revealed = [];
+let flags = 0;
+const boardDiv = document.getElementById("board");
+
+function toggleMusic() {
+  const music = document.getElementById("music");
+  music.paused ? music.play() : music.pause();
+}
+
+function startGame() {
+  const diff = document.getElementById("difficulty").value;
+  if (diff === "easy") { rows=6; cols=6; mines=6; }
+  else if (diff === "medium") { rows=8; cols=8; mines=10; }
+  else { rows=10; cols=10; mines=15; }
+
+  flags = 0;
+  document.getElementById("mineCount").innerText = `Mines: ${mines}`;
+  createBoard();
+}
+
+function createBoard() {
+  board = Array(rows).fill().map(()=>Array(cols).fill(0));
+  revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
+  boardDiv.innerHTML = "";
+  boardDiv.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  let placed = 0;
+  while (placed < mines) {
+    let r = Math.floor(Math.random()*rows);
+    let c = Math.floor(Math.random()*cols);
+    if (board[r][c] !== "M") {
+      board[r][c] = "M";
+      placed++;
+    }
+  }
+
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (board[r][c] !== "M") {
+        let count = 0;
+        for (let dr=-1;dr<=1;dr++){
+          for (let dc=-1;dc<=1;dc++){
+            let nr=r+dr,nc=c+dc;
+            if (nr>=0&&nr<rows&&nc>=0&&nc<cols&&board[nr][nc]==="M") count++;
+          }
+        }
+        board[r][c] = count;
+      }
+    }
+  }
+
+  const size = Math.min(400/cols, 400/rows);
+
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = size+"px";
+      cell.style.height = size+"px";
+      cell.oncontextmenu = e => { e.preventDefault(); flag(cell,r,c); };
+      cell.onclick = () => reveal(cell,r,c);
+      boardDiv.appendChild(cell);
+    }
+  }
+}
+
+function flag(cell,r,c){
+  if (revealed[r][c]) return;
+  cell.classList.toggle("flag");
+}
+
+function reveal(cell,r,c){
+  if (revealed[r][c] || cell.classList.contains("flag")) return;
+  revealed[r][c] = true;
+  cell.classList.add("revealed");
+
+  if (board[r][c] === "M") {
+    alert("Boom! 💥");
+    startGame();
+    return;
+  }
+  if (board[r][c] > 0) cell.innerText = board[r][c];
+}
+
+startGame();
+</script>
+
+</body>
+</html>
