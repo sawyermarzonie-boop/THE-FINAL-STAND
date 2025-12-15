@@ -1,1 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Miku Fun Zone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: url("miku.jpg") center/cover no-repeat fixed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#menu {
+  background: rgba(0,0,0,0.75);
+  padding: 30px;
+  border-radius: 15px;
+  color: white;
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+a {
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+  <h1>🎤 Miku Fun Zone 💙</h1>
+  <p>Welcome! Choose what you want to do.</p>
+
+  <a href="fun.html"><button>🎮 Play Games</button></a>
+  <button onclick="toggleMusic()">🎵 Toggle Music</button>
+</div>
+
+<audio id="music" loop>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+function toggleMusic() {
+  const music = document.getElementById("music");
+  music.paused ? music.play() : music.pause();
+}
+</script>
+
+</body>
+</html>
 
