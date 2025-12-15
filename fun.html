@@ -1,57 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fun Zone</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-    #video-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      z-index: -1;
-    }
-    .ui {
-      position: absolute;
-      top: 10px; left: 10px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-    }
-    button { margin-top: 8px; padding: 10px 14px; cursor: pointer; border: none; border-radius: 5px; }
-    #minesweeper { margin-top: 20px; }
-    table { border-collapse: collapse; margin-top: 10px; }
-    td { width: 30px; height: 30px; text-align: center; border: 1px solid #444; cursor: pointer; background: #999; }
-    td.flag { background: orange; }
-    td.revealed { background: #ccc; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fun Zone - Hatsune Miku Edition</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    background: #000;
+  }
+  #video-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    object-fit: cover;
+    z-index: -2;
+  }
+  .ui {
+    position: absolute;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 250px;
+    font-size: 14px;
+    z-index: 10;
+  }
+  .ui h3 { margin-top: 0; }
+  .ui a { color: #0af; text-decoration: none; }
+  .ui a:hover { text-decoration: underline; }
+  button { margin-top: 8px; padding: 8px 14px; cursor: pointer; border: none; border-radius: 5px; background: #0af; color: #000; font-weight: bold; }
+  table { border-collapse: collapse; margin-top: 10px; }
+  td {
+    width: 30px; height: 30px;
+    text-align: center;
+    border: 1px solid #444;
+    cursor: pointer;
+    background: #999;
+    user-select: none;
+    font-weight: bold;
+    font-size: 18px;
+    transition: background 0.2s;
+  }
+  td.revealed { background: #ccc; cursor: default; }
+  td.flag { background: orange; }
+  td:hover:not(.revealed):not(.flag) { filter: brightness(1.2); }
+  #mine-count { font-weight: bold; display: block; margin-bottom: 8px; }
+
+  /* Confetti overlay for win */
+  #confetti {
+    position: fixed;
+    top:0; left:0;
+    width:100vw;
+    height:100vh;
+    pointer-events:none;
+    z-index:20;
+    display:none;
+  }
+
+  /* Green screen BOOM overlay for lose */
+  #boom {
+    position: fixed;
+    top:0; left:0;
+    width:100vw;
+    height:100vh;
+    background: green;
+    color: white;
+    font-size: 5em;
+    text-align: center;
+    line-height: 100vh;
+    font-weight: bold;
+    z-index:30;
+    display:none;
+  }
+</style>
 </head>
 <body>
 
-<!-- Video background (placeholder) -->
 <video id="video-bg" autoplay loop muted>
-  <source src="https://yourusername.github.io/background.mp4" type="video/mp4">
+  <source src="https://cdn.pixabay.com/vimeo/358426593/Miku_Concert.mp4" type="video/mp4">
 </video>
 
-<!-- Settings panel -->
-<div class="ui">
+<div class="ui" style="top: 10px; left: 10px;">
   <h3>Settings</h3>
-  <label>
-    <input type="checkbox" id="music-toggle" checked> Music On
-  </label><br>
-  <label>
-    <input type="checkbox" id="video-toggle" checked> Animated Background
-  </label>
+  <label><input type="checkbox" id="music-toggle" checked> Music On</label><br>
+  <label><input type="checkbox" id="video-toggle" checked> Animated Background</label>
   <hr>
   <label>Difficulty:
     <select id="diff">
@@ -61,27 +97,91 @@
     </select>
   </label><br>
   <button onclick="startGame()">Restart Game</button>
+  <span id="mine-count"></span>
 </div>
 
-<!-- Background music -->
-<audio id="bgmusic" loop>
-  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-</audio>
-
-<!-- Links section -->
-<div class="ui" style="top: 150px;">
+<div class="ui" style="top: 180px; left: 10px;">
   <h3>Fun Links</h3>
   <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
   <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
 </div>
 
-<!-- Minesweeper game -->
-<div id="minesweeper" class="ui" style="top: 270px; max-width: fit-content;"></div>
+<div id="minesweeper" class="ui" style="top: 320px; left:10px;"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti"></canvas>
+
+<!-- BOOM overlay -->
+<div id="boom">💥 BOOM 💥</div>
+
+<audio id="bgmusic" loop>
+  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
 
 <script>
-// Game variables
-let rows, cols, mines, board, revealed;
+// Minesweeper Variables
+let rows, cols, mines, board, revealed, flags;
 
+// Confetti animation
+const confettiCanvas = document.getElementById("confetti");
+const confettiCtx = confettiCanvas.getContext("2d");
+confettiCanvas.width = window.innerWidth;
+confettiCanvas.height = window.innerHeight;
+let confettiParticles = [];
+
+function createConfetti() {
+  confettiParticles = [];
+  for (let i=0;i<150;i++){
+    confettiParticles.push({
+      x: Math.random()*confettiCanvas.width,
+      y: Math.random()*confettiCanvas.height- confettiCanvas.height,
+      r: Math.random()*6+4,
+      d: Math.random()*150+50,
+      color: `hsl(${Math.random()*360}, 100%, 50%)`,
+      tilt: Math.random()*10-10
+    });
+  }
+}
+
+function drawConfetti() {
+  confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+  confettiParticles.forEach(p=>{
+    confettiCtx.beginPath();
+    confettiCtx.lineWidth = p.r/2;
+    confettiCtx.strokeStyle = p.color;
+    confettiCtx.moveTo(p.x + p.tilt + p.r/4, p.y);
+    confettiCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
+    confettiCtx.stroke();
+  });
+  updateConfetti();
+}
+
+function updateConfetti() {
+  confettiParticles.forEach(p=>{
+    p.y += 2;
+    if (p.y>confettiCanvas.height) p.y=-10;
+  });
+}
+
+function startConfetti() {
+  document.getElementById("confetti").style.display = "block";
+  createConfetti();
+  let confettiInterval = setInterval(drawConfetti, 20);
+  setTimeout(()=>{
+    clearInterval(confettiInterval);
+    confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+    document.getElementById("confetti").style.display = "none";
+  }, 4000);
+}
+
+// BOOM animation
+function showBoom() {
+  const boom = document.getElementById("boom");
+  boom.style.display = "block";
+  setTimeout(()=>{ boom.style.display="none"; }, 1500);
+}
+
+// Difficulty
 function setDifficulty(d) {
   if (d==="easy") { rows=5; cols=5; mines=5; }
   else if (d==="medium") { rows=8; cols=8; mines=12; }
@@ -90,37 +190,41 @@ function setDifficulty(d) {
 
 function startGame() {
   setDifficulty(document.getElementById("diff").value);
+  flags = 0;
+  updateMineCount();
   initMinesweeper();
 }
 
-// build board
+// Update Mine Counter
+function updateMineCount() {
+  document.getElementById("mine-count").innerText = `Mines: ${mines - flags}`;
+}
+
+// Initialize Minesweeper
 function initMinesweeper() {
   const container = document.getElementById("minesweeper");
   container.innerHTML = "";
   board = Array(rows).fill().map(()=>Array(cols).fill(0));
   revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
 
-  let placed=0;
-  while(placed<mines) {
-    let r=Math.floor(Math.random()*rows);
-    let c=Math.floor(Math.random()*cols);
-    if (board[r][c] !== "M") {
-      board[r][c] = "M";
-      placed++;
-    }
+  let placed = 0;
+  while (placed < mines) {
+    let r = Math.floor(Math.random()*rows);
+    let c = Math.floor(Math.random()*cols);
+    if (board[r][c] !== "M") { board[r][c] = "M"; placed++; }
   }
 
-  for (let r=0; r<rows; r++) {
-    for (let c=0; c<cols; c++) {
-      if (board[r][c] !== "M") {
-        let count=0;
-        for (let dr=-1; dr<=1; dr++) {
-          for (let dc=-1; dc<=1; dc++) {
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (board[r][c]!=="M") {
+        let count = 0;
+        for (let dr=-1;dr<=1;dr++){
+          for (let dc=-1;dc<=1;dc++){
             let nr=r+dr, nc=c+dc;
             if (nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc]==="M") count++;
           }
         }
-        board[r][c] = count;
+        board[r][c]=count;
       }
     }
   }
@@ -140,54 +244,78 @@ function initMinesweeper() {
   container.appendChild(table);
 }
 
-// flag cell
+// Flag Cell
 function flagCell(td) {
-  if (td.classList.contains("revealed")) return;
+  let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
+  if (revealed[r][c]) return;
   td.classList.toggle("flag");
+  flags += td.classList.contains("flag") ? 1 : -1;
+  updateMineCount();
+  checkWin();
 }
 
-// reveal
+// Reveal Cell
 function revealCell(td) {
   let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
   if (td.classList.contains("flag") || revealed[r][c]) return;
-  revealed[r][c]=true;
+  revealed[r][c] = true;
   td.classList.add("revealed");
 
-  if (board[r][c]=="M") {
-    td.innerText="💥";
-    alert("BOOM! You hit a mine!");
-    startGame();
+  if (board[r][c] === "M") {
+    td.innerText = "💥";
+    showBoom();
+    setTimeout(startGame, 1600);
   } else {
-    if (board[r][c]>0) td.innerText=board[r][c];
+    if (board[r][c] > 0) td.innerText = board[r][c];
     else {
-      for (let dr=-1; dr<=1; dr++) {
-        for (let dc=-1; dc<=1; dc++) {
+      for (let dr=-1;dr<=1;dr++){
+        for (let dc=-1;dc<=1;dc++){
           let nr=r+dr, nc=c+dc;
-          if (nr>=0 && nr<rows && nc>=0 && nc<cols && !revealed[nr][nc]) {
+          if (nr>=0 && nr<rows && nc>=0 && nc<cols && !revealed[nr][nc]){
             const nxt=document.querySelector(`td[data-r='${nr}'][data-c='${nc}']`);
             revealCell(nxt);
           }
         }
       }
     }
+    checkWin();
   }
 }
 
+// Check Win
+function checkWin() {
+  let safeCells = 0;
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (!revealed[r][c] && board[r][c]!=="M") safeCells++;
+    }
+  }
+  if (safeCells === 0) {
+    startConfetti();
+    setTimeout(startGame, 4000);
+  }
+}
+
+// Initial game
 startGame();
 
-// music toggle
+// Music toggle
 document.getElementById("music-toggle").addEventListener("change", e=>{
   const music=document.getElementById("bgmusic");
   if (e.target.checked) music.play();
   else music.pause();
 });
 
-// video toggle
+// Video toggle
 document.getElementById("video-toggle").addEventListener("change", e=>{
   document.getElementById("video-bg").style.display = e.target.checked ? "block" : "none";
 });
-</script>
 
+// Resize confetti on window resize
+window.addEventListener('resize', ()=>{
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+});
+</script>
 </body>
 </html>
-
