@@ -17,22 +17,34 @@
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     object-fit: cover;
-    z-index: -2;
+    z-index: -1;
   }
-  .ui {
-    position: absolute;
+
+  /* Right side container for all UI */
+  #ui-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 10;
+  }
+
+  .ui-panel {
     background: rgba(0,0,0,0.75);
     color: #fff;
     padding: 15px;
     border-radius: 10px;
-    max-width: 250px;
     font-size: 14px;
-    z-index: 10;
   }
-  .ui h3 { margin-top: 0; }
-  .ui a { color: #0af; text-decoration: none; }
-  .ui a:hover { text-decoration: underline; }
+
+  .ui-panel h3 { margin-top: 0; }
+  .ui-panel a { color: #0af; text-decoration: none; }
+  .ui-panel a:hover { text-decoration: underline; }
   button { margin-top: 8px; padding: 8px 14px; cursor: pointer; border: none; border-radius: 5px; background: #0af; color: #000; font-weight: bold; }
+
   table { border-collapse: collapse; margin-top: 10px; }
   td {
     width: 30px; height: 30px;
@@ -48,25 +60,24 @@
   td.revealed { background: #ccc; cursor: default; }
   td.flag { background: orange; }
   td:hover:not(.revealed):not(.flag) { filter: brightness(1.2); }
-  #mine-count { font-weight: bold; display: block; margin-bottom: 8px; }
 
-  /* Confetti overlay for win */
+  #mine-count { font-weight: bold; display: block; margin-top: 8px; }
+
+  /* Confetti overlay */
   #confetti {
     position: fixed;
     top:0; left:0;
-    width:100vw;
-    height:100vh;
+    width:100vw; height:100vh;
     pointer-events:none;
     z-index:20;
     display:none;
   }
 
-  /* Green screen BOOM overlay for lose */
+  /* BOOM overlay */
   #boom {
     position: fixed;
     top:0; left:0;
-    width:100vw;
-    height:100vh;
+    width:100vw; height:100vh;
     background: green;
     color: white;
     font-size: 5em;
@@ -80,46 +91,53 @@
 </head>
 <body>
 
-<video id="video-bg" autoplay loop muted>
+<!-- Background Video -->
+<video id="video-bg" autoplay loop muted playsinline>
   <source src="https://cdn.pixabay.com/vimeo/358426593/Miku_Concert.mp4" type="video/mp4">
 </video>
 
-<div class="ui" style="top: 10px; left: 10px;">
-  <h3>Settings</h3>
-  <label><input type="checkbox" id="music-toggle" checked> Music On</label><br>
-  <label><input type="checkbox" id="video-toggle" checked> Animated Background</label>
-  <hr>
-  <label>Difficulty:
-    <select id="diff">
-      <option value="easy">Easy (5×5, 5 mines)</option>
-      <option value="medium">Medium (8×8, 12 mines)</option>
-      <option value="hard">Hard (10×10, 20 mines)</option>
-    </select>
-  </label><br>
-  <button onclick="startGame()">Restart Game</button>
-  <span id="mine-count"></span>
-</div>
+<!-- UI Container -->
+<div id="ui-container">
+  <!-- Settings Panel -->
+  <div class="ui-panel">
+    <h3>Settings</h3>
+    <label><input type="checkbox" id="music-toggle" checked> Music On</label><br>
+    <label><input type="checkbox" id="video-toggle" checked> Animated Background</label>
+    <hr>
+    <label>Difficulty:
+      <select id="diff">
+        <option value="easy">Easy (5×5, 5 mines)</option>
+        <option value="medium">Medium (8×8, 12 mines)</option>
+        <option value="hard">Hard (10×10, 20 mines)</option>
+      </select>
+    </label><br>
+    <button onclick="startGame()">Restart Game</button>
+    <span id="mine-count"></span>
+  </div>
 
-<div class="ui" style="top: 180px; left: 10px;">
-  <h3>Fun Links</h3>
-  <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
-  <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
-</div>
+  <!-- Links Panel -->
+  <div class="ui-panel">
+    <h3>Fun Links</h3>
+    <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
+    <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
+  </div>
 
-<div id="minesweeper" class="ui" style="top: 320px; left:10px;"></div>
+  <!-- Minesweeper Panel -->
+  <div class="ui-panel" id="minesweeper"></div>
+</div>
 
 <!-- Confetti canvas -->
 <canvas id="confetti"></canvas>
-
 <!-- BOOM overlay -->
 <div id="boom">💥 BOOM 💥</div>
 
+<!-- Background Music -->
 <audio id="bgmusic" loop>
   <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-// Minesweeper Variables
+// Minesweeper variables
 let rows, cols, mines, board, revealed, flags;
 
 // Confetti animation
@@ -311,7 +329,7 @@ document.getElementById("video-toggle").addEventListener("change", e=>{
   document.getElementById("video-bg").style.display = e.target.checked ? "block" : "none";
 });
 
-// Resize confetti on window resize
+// Resize confetti canvas on window resize
 window.addEventListener('resize', ()=>{
   confettiCanvas.width = window.innerWidth;
   confettiCanvas.height = window.innerHeight;
