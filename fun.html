@@ -3,84 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fun Zone - Hatsune Miku Edition</title>
+<title>Hatsune Miku Minesweeper</title>
 <style>
   html, body {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-    overflow: hidden;
-    background: #000;
-    height: 100vh;
+    height: 100%;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+    background: #000;
+    overflow: hidden;
   }
 
-  /* Background Video */
+  /* Video background */
   #video-bg {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     z-index: -1;
   }
 
-  /* Main Container */
+  /* Main container */
   #main-container {
+    background: rgba(0,0,0,0.75);
+    padding: 20px 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
-    background: rgba(0,0,0,0.6);
-    padding: 20px 40px;
-    border-radius: 15px;
-    max-width: 95vw;
-    overflow-x: auto;
-  }
-
-  /* UI Panels */
-  .ui-panel {
+    gap: 25px;
     color: #fff;
-    font-size: 14px;
+    overflow: hidden;
+  }
+
+  .ui-panel {
     width: 100%;
-  }
-
-  .ui-panel h3 { margin-top: 0; }
-  .ui-panel a { color: #0af; text-decoration: none; }
-  .ui-panel a:hover { text-decoration: underline; }
-  button {
-    margin-top: 8px;
-    padding: 8px 14px;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-    background: #0af;
-    color: #000;
-    font-weight: bold;
-  }
-
-  /* Minesweeper Table */
-  table { border-collapse: collapse; margin-top: 10px; }
-  td {
-    width: 30px; height: 30px;
     text-align: center;
-    border: 1px solid #444;
-    cursor: pointer;
-    background: #999;
-    user-select: none;
-    font-weight: bold;
-    font-size: 18px;
-    transition: background 0.2s;
   }
+
+  select, button {
+    margin-top: 8px;
+  }
+
+  /* Grid for Minesweeper */
+  #minesweeper table {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-gap: 2px;
+    width: 100%;
+    max-height: 70vh;
+    table-layout: fixed;
+  }
+
+  #minesweeper td {
+    aspect-ratio: 1;
+    background: #999;
+    border: 1px solid #555;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+    user-select: none;
+  }
+
   td.revealed { background: #ccc; cursor: default; }
   td.flag { background: orange; }
-  td:hover:not(.revealed):not(.flag) { filter: brightness(1.2); }
 
-  #mine-count { font-weight: bold; display: block; margin-top: 8px; text-align: center; }
-
-  /* Confetti Canvas */
+  /* Confetti canvas */
   #confetti {
     position: fixed;
     top:0; left:0;
@@ -90,38 +87,23 @@
     display:none;
   }
 
-  /* BOOM Overlay */
-  #boom {
-    position: fixed;
-    top:0; left:0;
-    width:100vw; height:100vh;
-    background: green;
-    color: white;
-    font-size: 5em;
-    text-align: center;
-    line-height: 100vh;
-    font-weight: bold;
-    z-index:30;
-    display:none;
-  }
 </style>
 </head>
 <body>
 
-<!-- Background Video -->
+<!-- Video Background -->
 <video id="video-bg" autoplay loop muted playsinline>
-  <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
-  Your browser does not support HTML5 video.
+  <source src="miku.mp4" type="video/mp4">
+  Your browser doesn’t support video.
 </video>
 
 <!-- Main Container -->
 <div id="main-container">
 
   <div class="ui-panel">
-    <h3>Settings</h3>
-    <label><input type="checkbox" id="music-toggle" checked> Music On</label><br>
-    <label><input type="checkbox" id="video-toggle" checked> Animated Background</label>
-    <hr>
+    <h2>Hatsune Miku Minesweeper</h2>
+    <label><input type="checkbox" id="music-toggle" checked> Music</label><br>
+    <label><input type="checkbox" id="video-toggle" checked> Video</label><br><br>
     <label>Difficulty:
       <select id="diff">
         <option value="easy">Easy (5×5, 5 mines)</option>
@@ -130,22 +112,15 @@
       </select>
     </label><br>
     <button onclick="startGame()">Restart Game</button>
-    <span id="mine-count"></span>
-  </div>
-
-  <div class="ui-panel">
-    <h3>Fun Links</h3>
-    <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
-    <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
+    <div id="mine-count"></div>
   </div>
 
   <div class="ui-panel" id="minesweeper"></div>
+
 </div>
 
-<!-- Confetti Canvas -->
+<!-- Confetti canvas -->
 <canvas id="confetti"></canvas>
-<!-- BOOM Overlay -->
-<div id="boom">💥 BOOM 💥</div>
 
 <!-- Background Music -->
 <audio id="bgmusic" loop>
@@ -153,10 +128,132 @@
 </audio>
 
 <script>
-// ======== Minesweeper Variables ========
+// ======== Minesweeper Logic ========
 let rows, cols, mines, board, revealed, flags;
 
-// ======== Confetti ========
+// Set difficulty
+function setDifficulty(d) {
+  if (d==="easy") { rows=5; cols=5; mines=5; }
+  else if (d==="medium") { rows=8; cols=8; mines=12; }
+  else { rows=10; cols=10; mines=20; }
+}
+
+// Start Game
+function startGame() {
+  setDifficulty(document.getElementById("diff").value);
+  flags = 0;
+  initMinesweeper();
+  updateMineCount();
+}
+
+// Update mine counter
+function updateMineCount() {
+  document.getElementById("mine-count").innerText = `Mines: ${mines - flags}`;
+}
+
+// Initialize Minesweeper board
+function initMinesweeper() {
+  const container = document.getElementById("minesweeper");
+  container.innerHTML = "";
+  container.style.setProperty('--cols', cols);
+
+  board = Array(rows).fill().map(()=>Array(cols).fill(0));
+  revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
+
+  // Place mines
+  let placed = 0;
+  while (placed < mines) {
+    let r = Math.floor(Math.random()*rows);
+    let c = Math.floor(Math.random()*cols);
+    if (board[r][c] !== "M") { board[r][c] = "M"; placed++; }
+  }
+
+  // Count neighbors
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (board[r][c] !== "M") {
+        let count = 0;
+        for (let dr=-1;dr<=1;dr++){
+          for (let dc=-1;dc<=1;dc++){
+            let nr = r+dr, nc = c+dc;
+            if (nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc]==="M") count++;
+          }
+        }
+        board[r][c] = count;
+      }
+    }
+  }
+
+  // Render grid
+  const table = document.createElement("table");
+  table.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      const td = document.createElement("td");
+      td.dataset.r = r;
+      td.dataset.c = c;
+      td.oncontextmenu = e => { e.preventDefault(); toggleFlag(td); };
+      td.onclick = () => revealCell(td);
+      table.appendChild(td);
+    }
+  }
+  container.appendChild(table);
+}
+
+// Flag toggle
+function toggleFlag(td) {
+  let r = +td.dataset.r, c = +td.dataset.c;
+  if (revealed[r][c]) return;
+  td.classList.toggle("flag");
+  flags += td.classList.contains("flag") ? 1 : -1;
+  updateMineCount();
+}
+
+// Reveal cell
+function revealCell(td) {
+  let r = +td.dataset.r, c = +td.dataset.c;
+  if (td.classList.contains("flag") || revealed[r][c]) return;
+  revealed[r][c] = true;
+  td.classList.add("revealed");
+
+  if (board[r][c] === "M") {
+    alert("Boom! 💥");
+    startGame();
+    return;
+  }
+
+  if (board[r][c] > 0) td.innerText = board[r][c];
+  else {
+    // Reveal neighbors recursively
+    for (let dr=-1;dr<=1;dr++){
+      for (let dc=-1;dc<=1;dc++){
+        let nr = r+dr, nc = c+dc;
+        if (nr>=0 && nr<rows && nc>=0 && nc<cols && !revealed[nr][nc]){
+          const nxt=document.querySelector(`td[data-r='${nr}'][data-c='${nc}']`);
+          revealCell(nxt);
+        }
+      }
+    }
+  }
+
+  checkWin();
+}
+
+// Check win
+function checkWin() {
+  let safeCells = 0;
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      if (!revealed[r][c] && board[r][c]!=="M") safeCells++;
+    }
+  }
+  if (safeCells === 0) {
+    startConfetti();
+    setTimeout(startGame, 3000);
+  }
+}
+
+// ======== Confetti Logic ========
 const confettiCanvas = document.getElementById("confetti");
 const confettiCtx = confettiCanvas.getContext("2d");
 confettiCanvas.width = window.innerWidth;
@@ -186,168 +283,43 @@ function drawConfetti() {
     confettiCtx.moveTo(p.x + p.tilt + p.r/4, p.y);
     confettiCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
     confettiCtx.stroke();
-  });
-  updateConfetti();
-}
-
-function updateConfetti() {
-  confettiParticles.forEach(p=>{
     p.y += 2;
     if (p.y>confettiCanvas.height) p.y=-10;
   });
 }
 
 function startConfetti() {
-  document.getElementById("confetti").style.display = "block";
+  confettiCanvas.style.display = "block";
   createConfetti();
-  let confettiInterval = setInterval(drawConfetti, 20);
+  let interval = setInterval(drawConfetti, 20);
   setTimeout(()=>{
-    clearInterval(confettiInterval);
+    clearInterval(interval);
     confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
-    document.getElementById("confetti").style.display = "none";
+    confettiCanvas.style.display = "none";
   }, 4000);
-}
-
-// ======== BOOM ========
-function showBoom() {
-  const boom = document.getElementById("boom");
-  boom.style.display = "block";
-  setTimeout(()=>{ boom.style.display="none"; }, 1500);
-}
-
-// ======== Game Logic ========
-function setDifficulty(d) {
-  if (d==="easy") { rows=5; cols=5; mines=5; }
-  else if (d==="medium") { rows=8; cols=8; mines=12; }
-  else { rows=10; cols=10; mines=20; }
-}
-
-function startGame() {
-  setDifficulty(document.getElementById("diff").value);
-  flags = 0;
-  updateMineCount();
-  initMinesweeper();
-}
-
-function updateMineCount() {
-  document.getElementById("mine-count").innerText = `Mines: ${mines - flags}`;
-}
-
-function initMinesweeper() {
-  const container = document.getElementById("minesweeper");
-  container.innerHTML = "";
-  board = Array(rows).fill().map(()=>Array(cols).fill(0));
-  revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
-
-  // Place mines
-  let placed = 0;
-  while (placed < mines) {
-    let r = Math.floor(Math.random()*rows);
-    let c = Math.floor(Math.random()*cols);
-    if (board[r][c] !== "M") { board[r][c] = "M"; placed++; }
-  }
-
-  // Count neighbors
-  for (let r=0;r<rows;r++){
-    for (let c=0;c<cols;c++){
-      if (board[r][c]!=="M") {
-        let count = 0;
-        for (let dr=-1;dr<=1;dr++){
-          for (let dc=-1;dc<=1;dc++){
-            let nr=r+dr, nc=c+dc;
-            if (nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc]==="M") count++;
-          }
-        }
-        board[r][c]=count;
-      }
-    }
-  }
-
-  // Render table
-  const table=document.createElement("table");
-  for (let r=0;r<rows;r++){
-    const tr=document.createElement("tr");
-    for (let c=0;c<cols;c++){
-      const td=document.createElement("td");
-      td.dataset.r=r; td.dataset.c=c;
-      td.oncontextmenu=e=>{ e.preventDefault(); flagCell(td); };
-      td.onclick=e=>revealCell(td);
-      tr.appendChild(td);
-    }
-    table.appendChild(tr);
-  }
-  container.appendChild(table);
-}
-
-function flagCell(td) {
-  let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
-  if (revealed[r][c]) return;
-  td.classList.toggle("flag");
-  flags += td.classList.contains("flag") ? 1 : -1;
-  updateMineCount();
-  checkWin();
-}
-
-function revealCell(td) {
-  let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
-  if (td.classList.contains("flag") || revealed[r][c]) return;
-  revealed[r][c] = true;
-  td.classList.add("revealed");
-
-  if (board[r][c] === "M") {
-    td.innerText = "💥";
-    showBoom();
-    setTimeout(startGame, 1600);
-  } else {
-    if (board[r][c] > 0) td.innerText = board[r][c];
-    else {
-      for (let dr=-1;dr<=1;dr++){
-        for (let dc=-1;dc<=1;dc++){
-          let nr=r+dr, nc=c+dc;
-          if (nr>=0 && nr<rows && nc>=0 && nc<cols && !revealed[nr][nc]){
-            const nxt=document.querySelector(`td[data-r='${nr}'][data-c='${nc}']`);
-            revealCell(nxt);
-          }
-        }
-      }
-    }
-    checkWin();
-  }
-}
-
-function checkWin() {
-  let safeCells = 0;
-  for (let r=0;r<rows;r++){
-    for (let c=0;c<cols;c++){
-      if (!revealed[r][c] && board[r][c]!=="M") safeCells++;
-    }
-  }
-  if (safeCells === 0) {
-    startConfetti();
-    setTimeout(startGame, 4000);
-  }
 }
 
 // ======== Initial Setup ========
 startGame();
 
-// Music toggle
+// ======== Music & Video Toggles ========
 document.getElementById("music-toggle").addEventListener("change", e=>{
   const music=document.getElementById("bgmusic");
   if (e.target.checked) music.play();
   else music.pause();
 });
 
-// Video toggle
 document.getElementById("video-toggle").addEventListener("change", e=>{
   document.getElementById("video-bg").style.display = e.target.checked ? "block" : "none";
 });
 
-// Resize confetti canvas
+// ======== Resize confetti canvas ========
 window.addEventListener('resize', ()=>{
   confettiCanvas.width = window.innerWidth;
   confettiCanvas.height = window.innerHeight;
 });
 </script>
+
 </body>
 </html>
+
