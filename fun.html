@@ -3,91 +3,136 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fun Page</title>
+  <title>Fun Zone</title>
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
       font-family: Arial, sans-serif;
-      background: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1950&q=80') no-repeat center center fixed;
-      background-size: cover;
-      color: white;
-      margin: 0; padding: 0;
     }
-    header { background-color: rgba(0,0,0,0.6); text-align: center; padding: 20px; font-size: 2em; }
-    main { max-width: 800px; margin: 30px auto; padding: 20px; background-color: rgba(0,0,0,0.7); border-radius: 10px; }
-    a { display: inline-block; margin: 10px 0; color: #FFD700; text-decoration: none; font-weight: bold; }
-    a:hover { color: #FF6347; }
-    button { padding: 10px 20px; font-size: 1em; margin-top: 10px; border-radius: 5px; border: none; cursor: pointer; background-color: #4CAF50; color: white; }
+    #video-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: -1;
+    }
+    .ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    button { margin-top: 8px; padding: 10px 14px; cursor: pointer; border: none; border-radius: 5px; }
     #minesweeper { margin-top: 20px; }
     table { border-collapse: collapse; margin-top: 10px; }
-    td { width: 30px; height: 30px; text-align: center; vertical-align: middle; border: 1px solid #555; cursor: pointer; background-color: #888; font-weight: bold; color: black; }
-    td.revealed { background-color: #ccc; }
+    td { width: 30px; height: 30px; text-align: center; border: 1px solid #444; cursor: pointer; background: #999; }
+    td.flag { background: orange; }
+    td.revealed { background: #ccc; }
   </style>
 </head>
 <body>
 
-<audio autoplay loop>
+<!-- Video background (placeholder) -->
+<video id="video-bg" autoplay loop muted>
+  <source src="https://yourusername.github.io/background.mp4" type="video/mp4">
+</video>
+
+<!-- Settings panel -->
+<div class="ui">
+  <h3>Settings</h3>
+  <label>
+    <input type="checkbox" id="music-toggle" checked> Music On
+  </label><br>
+  <label>
+    <input type="checkbox" id="video-toggle" checked> Animated Background
+  </label>
+  <hr>
+  <label>Difficulty:
+    <select id="diff">
+      <option value="easy">Easy (5×5, 5 mines)</option>
+      <option value="medium">Medium (8×8, 12 mines)</option>
+      <option value="hard">Hard (10×10, 20 mines)</option>
+    </select>
+  </label><br>
+  <button onclick="startGame()">Restart Game</button>
+</div>
+
+<!-- Background music -->
+<audio id="bgmusic" loop>
   <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
 </audio>
 
-<header>🎉 Fun Page 🎉</header>
-
-<main>
-  <h2>Links</h2>
+<!-- Links section -->
+<div class="ui" style="top: 150px;">
+  <h3>Fun Links</h3>
   <a href="https://www.coolmathgames.com/" target="_blank">Cool Math Games</a><br>
   <a href="https://www.soundtrap.com/" target="_blank">Soundtrap</a>
+</div>
 
-  <h2>Minesweeper</h2>
-  <div id="minesweeper"></div>
-</main>
+<!-- Minesweeper game -->
+<div id="minesweeper" class="ui" style="top: 270px; max-width: fit-content;"></div>
 
 <script>
-// --- Minesweeper ---
-const ROWS = 5;
-const COLS = 5;
-const MINES = 5;
-let board = [];
-let revealed = [];
+// Game variables
+let rows, cols, mines, board, revealed;
 
+function setDifficulty(d) {
+  if (d==="easy") { rows=5; cols=5; mines=5; }
+  else if (d==="medium") { rows=8; cols=8; mines=12; }
+  else { rows=10; cols=10; mines=20; }
+}
+
+function startGame() {
+  setDifficulty(document.getElementById("diff").value);
+  initMinesweeper();
+}
+
+// build board
 function initMinesweeper() {
   const container = document.getElementById("minesweeper");
   container.innerHTML = "";
+  board = Array(rows).fill().map(()=>Array(cols).fill(0));
+  revealed = Array(rows).fill().map(()=>Array(cols).fill(false));
 
-  board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-  revealed = Array(ROWS).fill().map(() => Array(COLS).fill(false));
-
-  let minesPlaced = 0;
-  while (minesPlaced < MINES) {
-    let r = Math.floor(Math.random() * ROWS);
-    let c = Math.floor(Math.random() * COLS);
+  let placed=0;
+  while(placed<mines) {
+    let r=Math.floor(Math.random()*rows);
+    let c=Math.floor(Math.random()*cols);
     if (board[r][c] !== "M") {
       board[r][c] = "M";
-      minesPlaced++;
+      placed++;
     }
   }
 
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (board[r][c] === "M") continue;
-      let count = 0;
-      for (let dr=-1; dr<=1; dr++) {
-        for (let dc=-1; dc<=1; dc++) {
-          let nr = r + dr;
-          let nc = c + dc;
-          if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && board[nr][nc]==="M") count++;
+  for (let r=0; r<rows; r++) {
+    for (let c=0; c<cols; c++) {
+      if (board[r][c] !== "M") {
+        let count=0;
+        for (let dr=-1; dr<=1; dr++) {
+          for (let dc=-1; dc<=1; dc++) {
+            let nr=r+dr, nc=c+dc;
+            if (nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc]==="M") count++;
+          }
         }
+        board[r][c] = count;
       }
-      board[r][c] = count;
     }
   }
 
-  const table = document.createElement("table");
-  for (let r = 0; r < ROWS; r++) {
-    const tr = document.createElement("tr");
-    for (let c = 0; c < COLS; c++) {
-      const td = document.createElement("td");
-      td.dataset.row = r;
-      td.dataset.col = c;
-      td.addEventListener("click", revealCell);
+  const table=document.createElement("table");
+  for (let r=0;r<rows;r++){
+    const tr=document.createElement("tr");
+    for (let c=0;c<cols;c++){
+      const td=document.createElement("td");
+      td.dataset.r=r; td.dataset.c=c;
+      td.oncontextmenu=e=>{ e.preventDefault(); flagCell(td); };
+      td.onclick=e=>revealCell(td);
       tr.appendChild(td);
     }
     table.appendChild(tr);
@@ -95,37 +140,54 @@ function initMinesweeper() {
   container.appendChild(table);
 }
 
-function revealCell(e) {
-  const r = parseInt(this.dataset.row);
-  const c = parseInt(this.dataset.col);
-  if (revealed[r][c]) return;
+// flag cell
+function flagCell(td) {
+  if (td.classList.contains("revealed")) return;
+  td.classList.toggle("flag");
+}
 
-  revealed[r][c] = true;
-  this.classList.add("revealed");
+// reveal
+function revealCell(td) {
+  let r=parseInt(td.dataset.r), c=parseInt(td.dataset.c);
+  if (td.classList.contains("flag") || revealed[r][c]) return;
+  revealed[r][c]=true;
+  td.classList.add("revealed");
 
-  if (board[r][c] === "M") {
-    this.innerText = "💣";
-    alert("Game Over!");
-    initMinesweeper();
-  } else if (board[r][c] === 0) {
-    this.innerText = "";
-    for (let dr=-1; dr<=1; dr++) {
-      for (let dc=-1; dc<=1; dc++) {
-        let nr = r + dr;
-        let nc = c + dc;
-        if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS) {
-          const td = document.querySelector(`td[data-row='${nr}'][data-col='${nc}']`);
-          if (td && !revealed[nr][nc]) td.click();
+  if (board[r][c]=="M") {
+    td.innerText="💥";
+    alert("BOOM! You hit a mine!");
+    startGame();
+  } else {
+    if (board[r][c]>0) td.innerText=board[r][c];
+    else {
+      for (let dr=-1; dr<=1; dr++) {
+        for (let dc=-1; dc<=1; dc++) {
+          let nr=r+dr, nc=c+dc;
+          if (nr>=0 && nr<rows && nc>=0 && nc<cols && !revealed[nr][nc]) {
+            const nxt=document.querySelector(`td[data-r='${nr}'][data-c='${nc}']`);
+            revealCell(nxt);
+          }
         }
       }
     }
-  } else {
-    this.innerText = board[r][c];
   }
 }
 
-initMinesweeper();
+startGame();
+
+// music toggle
+document.getElementById("music-toggle").addEventListener("change", e=>{
+  const music=document.getElementById("bgmusic");
+  if (e.target.checked) music.play();
+  else music.pause();
+});
+
+// video toggle
+document.getElementById("video-toggle").addEventListener("change", e=>{
+  document.getElementById("video-bg").style.display = e.target.checked ? "block" : "none";
+});
 </script>
 
 </body>
 </html>
+
